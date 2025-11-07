@@ -15,7 +15,7 @@
  * @param key the original 16-byte AES key
  */
 void generateSubkeys( byte subkey[ ROUNDS + 1 ][ BLOCK_SIZE ], byte const key[ BLOCK_SIZE ] ) {
-
+    
 }
 
 /**
@@ -34,9 +34,20 @@ void addSubkey( byte data[ BLOCK_SIZE ], byte const key[ BLOCK_SIZE ] ) {
  */
 void blockToSquare( byte square[ BLOCK_ROWS ][ BLOCK_COLS ], byte const data[ BLOCK_SIZE ] )
 {
+  //a b c d   e f g h  i j k l  m n o p 
+
+  //a e i m
+  //b f j n
+  //c g k o
+  //d h l p
+
+  //index = 6   g  [2][1] = data[ 1 * 4 + 2 ]  
+  //square[r][c] = data[ c * BLOCK_ROWS + r ]
+
     for (int r = 0; r < BLOCK_ROWS; r++) {
         for (int c = 0; c < BLOCK_COLS; c++) {
-            square[r][c] = data[c * BLOCK_ROWS + r];
+            square[r][c] = data[r + (BLOCK_ROWS *c)];
+
         }
     }
 }
@@ -48,7 +59,11 @@ void blockToSquare( byte square[ BLOCK_ROWS ][ BLOCK_COLS ], byte const data[ BL
  * @param square 4x4 array representing the current AES state 
  */
 void squareToBlock( byte data[ BLOCK_SIZE ], byte const square[ BLOCK_ROWS ][ BLOCK_COLS ] ) {
-
+    for (int r = 0; r < BLOCK_ROWS; r++) {
+        for (int c = 0; c < BLOCK_COLS; c++) {
+            data[r + (BLOCK_ROWS * c)] = square[r][c];
+        }
+    }
 }
 
 /**
