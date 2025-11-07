@@ -57,8 +57,8 @@ byte fieldMul( byte a, byte b ) {
 
   }
 
-
   int count = 0;
+  //reading from left to right 
   for (int i = 15; i >= 8; i--) {
     if ( ((result & (1 << i)) != 0 ) && (result > 0x7F) ) {
       count++;
@@ -66,7 +66,6 @@ byte fieldMul( byte a, byte b ) {
       result ^= (mod << (i - 8));
     }
   }
-
     
   return result & 0x00FF;
 }

@@ -30,7 +30,6 @@ int main()
   // down past the blocks of code below.  That will enable tests of
   // various functions you're expected to implement.
   
-#ifdef DISABLE_TESTS
     
   ////////////////////////////////////////////////////////////////////////
   // Test generateSubkeys();
@@ -273,7 +272,6 @@ int main()
   // Once you move the #ifdef DISABLE_TESTS to here, you've enabled
   // all the tests.
 
-#endif
 
   // Report how many tests are passing.
   printf( "** Passed %d unit tests for aes.c.\n", passedTests );
