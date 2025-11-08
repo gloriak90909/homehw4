@@ -292,6 +292,12 @@ void subBytes(byte data[BLOCK_SIZE]) {
   }
 }
 
+void invSubBytes(byte data[BLOCK_SIZE]) {
+  for (int i = 0; i < BLOCK_SIZE; i++) {
+    data[i] = invSubstBox(data[i]);
+  }
+}
+
 
 
 
@@ -340,7 +346,7 @@ void encryptBlock( byte data[ BLOCK_SIZE ], byte key[ BLOCK_SIZE ] ) {
 /**
  * This function decrypts a 16-byte block of data using the given key. 
  * It generates the 11 subkeys from key, then performs the 10 rounds of inverse operations (and then an addSubkey) to decrypt the block.
- * @param data 16-byte array representing the current AES state
+ * @param data 16-byte array representing the current AES state (the ciphertext to be decrypted)
  * @param key 16-byte AES key used to decrypt the data
  */
 void decryptBlock( byte data[ BLOCK_SIZE ], byte key[ BLOCK_SIZE ] ) {
@@ -348,30 +354,38 @@ void decryptBlock( byte data[ BLOCK_SIZE ], byte key[ BLOCK_SIZE ] ) {
   byte subkey[ROUNDS + 1 ][ BLOCK_SIZE ];
   byte square[ BLOCK_ROWS ][ BLOCK_COLS ];
 
-  addSubkey(data, subkey[10]);
-
   generateSubkeys(subkey, key);
+  
+  addSubkey(data, subkey[ROUNDS]);
+
+  //inverse round 10 without MixColumns
+  blockToSquare(square, data);
+  unShiftRows(square);
+  squareToBlock(data, square);
+  invSubBytes(data);
+  
+    //subBytes(data);
+    //shiftRows(square);
+    //mixColumns(square);
+    //addSubkey(data, subkey[i+1]);
 
   //round inverse operations 9 to 1
-  for (int i = ROUNDS; i > 1; i--) {
+  for (int i = ROUNDS -1; i > 0; i--) {
     addSubkey(data, subkey[i]);
-    squareToBlock(data, square);
-    unShiftRows(square);
+
     blockToSquare(square, data);
-    subBytes(data); 
+
     unMixColumns(square);
+    unShiftRows(square);
+
     squareToBlock(data, square);
+    invSubBytes(data);
+    
+
   }
 
 
-  //round 10 without MixColumns
-  addSubkey(data, subkey[ROUNDS]);
-  squareToBlock(data, square);
-  shiftRows(square);
-  blockToSquare(square, data);
-  subBytes(data); 
-  
   addSubkey(data, subkey[0]);
-  
+
   
 }
