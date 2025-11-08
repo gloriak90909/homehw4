@@ -15,7 +15,62 @@
  * @param key the original 16-byte AES key
  */
 void generateSubkeys( byte subkey[ ROUNDS + 1 ][ BLOCK_SIZE ], byte const key[ BLOCK_SIZE ] ) {
+  //10 rounds + inital key
+
+  //round 0: original key
+  //round 1: 16 bytes derived from key
+  //roun 2: 16 bytes derived from round 1 key
+  //...
+  //round 10: 16 bytes derived from round 9 key
+
+  //copying original key to round 0
+  for (int i = 0; i < BLOCK_SIZE; i++) {
+    subkey[0][i] = key[i];
+  }
+
+  for (int k = 1; k < ROUNDS + 1; k++) {
+  //round 2
+  byte word0[4] = {subkey[k-1][0], subkey[k-1][1], subkey[k-1][2], subkey[k-1][3]};
+  //byte 4-7
+  byte word1[4] = {subkey[k-1][4], subkey[k-1][5], subkey[k-1][6], subkey[k-1][7]};
+  byte word2[4] = {subkey[k-1][8], subkey[k-1][9], subkey[k-1][10], subkey[k-1][11]};
+  byte word3[4] = {subkey[k-1][12], subkey[k-1][13], subkey[k-1][14], subkey[k-1][15]};
   
+  byte gfuncword[4];
+  //dest, src, rountcount
+  gFunction(gfuncword, word3, k); 
+
+  byte gfuncWithW0[4];
+
+  //g function xor with word0
+  for (int i = 0; i < 4; i++) {
+      gfuncWithW0[i] = word0[i] ^ gfuncword[i]; 
+  }
+
+  //puts gfuncWithW0 into subkey[k] first 4 bytes
+  for (int i = 0; i < 4; i++) {
+    subkey[k][i] = gfuncWithW0[i];
+  }
+  
+  //word1 xor with subkey[k] first 4 bytes
+  for (int i = 0; i < 4; i++) {
+      subkey[k][i+4] =  subkey[k][i] ^ word1[i];
+  }
+
+  //word2 xor with subkey[k] second 4 bytes
+  for (int i = 0; i < 4; i++) {
+      subkey[k][i+8] = subkey[k][i+4] ^ word2[i];
+  }
+
+  //word3 xor with subkey[k] third 4 bytes
+  for (int i = 0; i < 4; i++) {
+      subkey[k][i+12] = subkey[k][i+8] ^ word3[i];
+  }
+
+
+
+  }
+
 }
 
 /**
@@ -145,8 +200,8 @@ void unShiftRows( byte square[ BLOCK_ROWS ][ BLOCK_COLS ] ) {
   byte ttwo1 = square[2][2]; //c
   square[2][3] = square[2][1]; //g = o
   square[2][2] = square[2][0]; //c = k    
-  square[2][1] = ttwo1; //o = c
-  square[2][0] = ttwo; //k = g
+  square[2][1] = ttwo; //o = c
+  square[2][0] = ttwo1; //k = g
     
   //row 3 right by 3
   byte tthree = square[3][0]; //d
@@ -231,14 +286,55 @@ void unMixColumns( byte square[ BLOCK_ROWS ][ BLOCK_COLS ] ) {
 }
 
 
+void subBytes(byte data[BLOCK_SIZE]) {
+  for (int i = 0; i < BLOCK_SIZE; i++) {
+    data[i] = substBox(data[i]);
+  }
+}
+
+
+
+
 /**
  * This function encrypts a 16-byte block of data using the given key. 
  * It generates the 11 subkeys from key, adds the first subkey, then performs the 10 rounds of operations needed to encrypt the block.
- * @param data 16-byte array representing the current AES state
- * @param key 16-byte AES key used to encrypt the data
+ * @param data 16-byte array of the plaintext that will be encrypted into ciphertext
+ * @param key the original 16-byte AES key used to encrypt the data
  */
 void encryptBlock( byte data[ BLOCK_SIZE ], byte key[ BLOCK_SIZE ] ) {
+  // generateSubkeys( byte subkey[ ROUNDS + 1 ][ BLOCK_SIZE ], byte const key[ BLOCK_SIZE ] ) {
+  byte subkey[ROUNDS + 1 ][ BLOCK_SIZE ];
 
+  generateSubkeys(subkey, key);  
+
+  //mixes original key with the plaintext data before round1
+  addSubkey(data, subkey[0]);
+
+  byte square[ BLOCK_ROWS ][ BLOCK_COLS ];
+
+  //subBytes
+  //shiftRows
+  //mixColumns
+  //addSubkey
+  for (int i = 0; i < ROUNDS -1; i++) {
+    subBytes(data);
+    blockToSquare(square, data);
+    shiftRows(square);
+    mixColumns(square);
+    squareToBlock(data, square);
+    addSubkey(data, subkey[i+1]);
+    
+    
+  }
+
+  //without MixColumns in the last round
+
+  subBytes(data); 
+  blockToSquare(square, data);
+  shiftRows(square);
+  squareToBlock(data, square);
+  addSubkey(data, subkey[ROUNDS]);
+  
 }
 
 /**
@@ -249,4 +345,33 @@ void encryptBlock( byte data[ BLOCK_SIZE ], byte key[ BLOCK_SIZE ] ) {
  */
 void decryptBlock( byte data[ BLOCK_SIZE ], byte key[ BLOCK_SIZE ] ) {
 
+  byte subkey[ROUNDS + 1 ][ BLOCK_SIZE ];
+  byte square[ BLOCK_ROWS ][ BLOCK_COLS ];
+
+  addSubkey(data, subkey[10]);
+
+  generateSubkeys(subkey, key);
+
+  //round inverse operations 9 to 1
+  for (int i = ROUNDS; i > 1; i--) {
+    addSubkey(data, subkey[i]);
+    squareToBlock(data, square);
+    unShiftRows(square);
+    blockToSquare(square, data);
+    subBytes(data); 
+    unMixColumns(square);
+    squareToBlock(data, square);
+  }
+
+
+  //round 10 without MixColumns
+  addSubkey(data, subkey[ROUNDS]);
+  squareToBlock(data, square);
+  shiftRows(square);
+  blockToSquare(square, data);
+  subBytes(data); 
+  
+  addSubkey(data, subkey[0]);
+  
+  
 }
