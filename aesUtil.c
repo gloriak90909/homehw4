@@ -5,6 +5,7 @@
 */
 
 #include "aesUtil.h"
+#include "field.h"
 
 /** Documented in the header. */
 const byte forwardMixMatrix[ BLOCK_ROWS ][ BLOCK_COLS ] = {
